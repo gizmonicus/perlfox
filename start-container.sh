@@ -27,4 +27,6 @@ DOCKER_OPTS="--volume=$XSOCK:$XSOCK
              --volume $PERLFOX_HOME:/home/perlfox-user"
 
 echo -e "Starting Docker:\n---"
+
+docker pull gizmonicus/perlfox
 docker run -it $DOCKER_OPTS gizmonicus/perlfox
