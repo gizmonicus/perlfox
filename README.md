@@ -5,4 +5,4 @@ A silly name for a silly browser package for people who need the Java plugin. Wh
 This is a simple Dockerfile for people who want to run the latest version of Firefox, but still need support for horrid applications that use NPAPI plugins (i.e. the dreaded Java plugin).
 
 ## How to use it
-Simple, clone this repo. Then run the `start-container.sh` script to pull the image from Dockerhub, create the appropriate users, set permissions on the X11 socket and finally, run Firefox. '''Note''' The startup script also creates ~/.perlfox_home automatically.
+Simple, clone this repo. Then run the `start-container.sh` script to pull the image from Dockerhub, create the appropriate users, set permissions on the X11 socket and finally, run Firefox. **Note** The startup script also creates ~/.perlfox_home automatically. If you do not like this behavior, feel free to implement an optional argument to disable this.
