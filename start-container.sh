@@ -5,8 +5,10 @@ function cleanup() {
     echo "Cleaning up temporary SSH keys"
     rm $SSH_KEY{,.pub}
 
-    echo -e "Killing docker container: "
+    echo -n "Killing docker container: "
     docker kill perlfox-session
+    echo -n "Removing docker container: "
+    docker rm perlfox-session
     exit
 }
 
@@ -20,7 +22,8 @@ PF_KEY="$(cat ${SSH_KEY}.pub)"
 
 # Run docker container
 echo "Starting Docker"
-docker run --rm -d -p 2022:22 -e "PF_KEY=$PF_KEY" --name perlfox-session gizmonicus/perlfox:testing >/dev/null
+docker pull gizmonicus/perlfox:testing
+docker run -d -p 2022:22 -e "PF_KEY=$PF_KEY" --name perlfox-session gizmonicus/perlfox:testing >/dev/null
 
 # Wait for SSH to start accepting connections
 REPEAT='true'
