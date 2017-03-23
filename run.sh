@@ -1,9 +1,15 @@
 #!/bin/bash
+PF_HOME=/home/perlfox-user
 
-echo "Adding perlfox-user group with GID $MY_GID"
-groupadd -g $MY_GID perlfox-user
+echo "Adding perlfox-user"
+useradd -d $PF_HOME perlfox-user
 
-echo "Adding perlfox-user with UID $MY_UID"
-useradd -u $MY_UID -g $MY_GID -s /bin/bash perlfox-user
+mkdir -p /home/perlfox-user/.ssh
+echo $PF_KEY > $PF_HOME/.ssh/authorized_keys
+chmod 700 $PF_HOME/.ssh && chmod 400 $PF_HOME/.ssh/authorized_keys
+chown -R perlfox-user:perlfox-user $PF_HOME/.ssh
 
-su - perlfox-user -c firefox
+
+export OPTIONS="-D"
+echo "Starting SSH Server; press Ctrl + C to stop."
+/etc/init.d/sshd start >/dev/null

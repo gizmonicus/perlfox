@@ -1,30 +1,29 @@
 #!/bin/bash
+SSH_KEY=$(mktemp ~/.ssh/perlfox_XXXXXX)
 
-echo -e "Startup:\n---\nCreating homedir for perlfox."
-export PERLFOX_HOME=$HOME/.perlfox_home
-mkdir -p $PERLFOX_HOME
-echo -e "Created directory: $PERLFOX_HOME."
+function cleanup() {
+    echo "Cleaning up temporary SSH keys"
+    rm $SSH_KEY{,.pub}
 
-# X11 socket for displaying Firefox UI
-XSOCK=/tmp/.X11-unix
+    echo "Killing docker container"
+    docker kill perlfox-session
+    exit
+}
 
-# Xauthority file so X11 will actually trust this container.
-MYXAUTH=$(mktemp /tmp/.docker_xauthXXXXXX)
-echo -e "Configuring xauthority"
-xauth nlist $DISPLAY | sed -e 's/^..../ffff/' | xauth -f $MYXAUTH nmerge -
+# MAIN
+# Kill the container on CTRL+C
+trap cleanup INT
 
-# In order for home directory integration to work, we need the UID/GID to match
-MY_GID=$(grep ":${UID}:[0-9]*:" /etc/passwd | awk -F: '{print $4}')
-
-echo -e "Detected UID/GID as $UID/$MY_GID"
-
-DOCKER_OPTS="--volume=$XSOCK:$XSOCK
-             --volume=$MYXAUTH:$MYXAUTH
-             --env=XAUTHORITY=${MYXAUTH}
-             --env=DISPLAY
-             --env=MY_UID=$UID
-             --env=MY_GID=$MY_GID
-             --volume $PERLFOX_HOME:/home/perlfox-user"
+# Create the SSH key for automatic login
+echo -e "y\n" | ssh-keygen -t rsa -N "" -f $SSH_KEY >/dev/null || exit 1
+PF_KEY="$(cat ${SSH_KEY}.pub)"
 
 echo -e "Starting Docker:\n---"
-docker run -it $DOCKER_OPTS gizmonicus/perlfox
+docker run --rm -d -p 2022:22 -e "PF_KEY=$PF_KEY" --name perlfox-session gizmonicus/perlfox:testing
+
+# Wait for SSH to start accepting connections
+sleep 5
+ssh -X -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p 2022 -i $SSH_KEY perlfox-user@localhost
+
+# Clean up after ourselves
+cleanup
