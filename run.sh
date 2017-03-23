@@ -1,8 +1,14 @@
 #!/bin/bash
 PF_HOME=/home/perlfox-user
 
-echo "Adding perlfox-user"
-useradd -d $PF_HOME perlfox-user
+echo "Making homedir (if it doesn't exist)"
+mkdir -p /home/perlfox-user
+
+echo "Adding perlfox-user group with GID $MY_GID"
+groupadd -g $MY_GID perlfox-user
+
+echo "Adding perlfox-user with UID $MY_UID"
+useradd -u $MY_UID -g $MY_GID -d $PF_HOME perlfox-user
 
 # Setup perlfox-user keys
 mkdir -p /home/perlfox-user/.ssh
