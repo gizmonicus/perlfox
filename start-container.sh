@@ -39,7 +39,7 @@ MY_GID=$(grep ":${UID}:[0-9]*:" /etc/passwd | awk -F: '{print $4}')
 
 # Run docker container
 echo ">> Pulling docker container"
-docker pull gizmonicus/perlfox:testing | indent
+docker pull gizmonicus/perlfox:latest | indent
 echo ">> Running docker container"
 docker run -d -p 2022:22 \
         -e "MY_GID=$MY_GID" \
