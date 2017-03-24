@@ -1,32 +1,70 @@
 #!/bin/bash
+SSH_KEY=$(mktemp ~/.ssh/perlfox_XXXXXX)
+PF_HOME=$HOME/.perlfox_home
 
-echo -e "Startup:\n---\nCreating homedir for perlfox."
-export PERLFOX_HOME=$HOME/.perlfox_home
-mkdir -p $PERLFOX_HOME
-echo -e "Created directory: $PERLFOX_HOME."
+function indent() { 
+    sed 's/^/  | /' 
+}
 
-# X11 socket for displaying Firefox UI
-XSOCK=/tmp/.X11-unix
+function success() {
+    echo " -> Success"
+}
 
-# Xauthority file so X11 will actually trust this container.
-MYXAUTH=$(mktemp /tmp/.docker_xauthXXXXXX)
-echo -e "Configuring xauthority"
-xauth nlist $DISPLAY | sed -e 's/^..../ffff/' | xauth -f $MYXAUTH nmerge -
+function cleanup() {
+    echo -n ">> Cleaning up temporary SSH keys"
+    rm $SSH_KEY{,.pub} && success
+
+    echo -n ">> Killing docker container: "
+    docker kill perlfox-session
+    echo -n ">> Removing docker container: "
+    docker rm perlfox-session
+    exit
+}
+
+# MAIN
+# Kill the container on CTRL+C
+trap cleanup INT
+
+# Create a homedir for perlfox
+echo -n ">> Creating homedirectory: $PF_HOME"
+mkdir -p $PF_HOME && success
+
+# Create the SSH key for automatic login
+echo ">> Creating temporary keypair: $SSH_KEY"
+echo -e "y\n" | ssh-keygen -t rsa -N "" -f $SSH_KEY | indent || exit 1
+PF_KEY="$(cat ${SSH_KEY}.pub)"
 
 # In order for home directory integration to work, we need the UID/GID to match
 MY_GID=$(grep ":${UID}:[0-9]*:" /etc/passwd | awk -F: '{print $4}')
 
-echo -e "Detected UID/GID as $UID/$MY_GID"
+# Run docker container
+echo ">> Pulling docker container"
+docker pull gizmonicus/perlfox:testing | indent
+echo ">> Running docker container"
+docker run -d -p 2022:22 \
+        -e "MY_GID=$MY_GID" \
+        -e "MY_UID=$UID" \
+        -e "PF_KEY=$PF_KEY" \
+        -v "$PF_HOME:/home/perlfox-user" \
+        --name perlfox-session \
+    gizmonicus/perlfox:testing | indent
 
-DOCKER_OPTS="--volume=$XSOCK:$XSOCK
-             --volume=$MYXAUTH:$MYXAUTH
-             --env=XAUTHORITY=${MYXAUTH}
-             --env=DISPLAY
-             --env=MY_UID=$UID
-             --env=MY_GID=$MY_GID
-             --volume $PERLFOX_HOME:/home/perlfox-user"
+# Wait for SSH to start accepting connections
+REPEAT='true'
+COUNT='0'
+LIMIT='5'
+while "$REPEAT"; do
+    # Disable host checking to prevent key mismatch. Don't save the host in known hosts file.
+    ssh -X -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p 2022 -i $SSH_KEY perlfox-user@localhost 2>/dev/null && REPEAT='false'
 
-echo -e "Starting Docker:\n---"
+    # Try for $LIMIT seconds
+    COUNT=$[COUNT + 1]
+    sleep 1
+    if [ "$COUNT" -ge "$LIMIT" ]; then
+        echo ">> Error connecting to SSH daemon after $COUNT attempts"
+        break
+    fi
+done
 
-docker pull gizmonicus/perlfox
-docker run -it $DOCKER_OPTS gizmonicus/perlfox
+# Clean up after ourselves
+cleanup
