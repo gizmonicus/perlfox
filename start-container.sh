@@ -52,7 +52,7 @@ docker run -d -p 2022:22 \
 # Wait for SSH to start accepting connections
 REPEAT='true'
 COUNT='0'
-LIMIT='5'
+LIMIT='10'
 while "$REPEAT"; do
     # Disable host checking to prevent key mismatch. Don't save the host in known hosts file.
     ssh -X -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p 2022 -i $SSH_KEY perlfox-user@localhost 2>/dev/null && REPEAT='false'
