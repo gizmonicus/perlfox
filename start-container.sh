@@ -1,7 +1,4 @@
 #!/bin/bash
-SSH_KEY=$(mktemp ~/.ssh/perlfox_XXXXXX)
-PF_HOME=$HOME/.perlfox_home
-
 function indent() { 
     sed 's/^/  | /' 
 }
@@ -12,7 +9,7 @@ function success() {
 
 function cleanup() {
     echo -n ">> Cleaning up temporary SSH keys"
-    rm $SSH_KEY{,.pub} && success
+    rm ~/.ssh/perlfox_* && success
 
     echo -n ">> Killing docker container: "
     docker kill perlfox-session
@@ -22,6 +19,9 @@ function cleanup() {
 }
 
 # MAIN
+SSH_KEY=$(mktemp ~/.ssh/perlfox_XXXXXX)
+PF_HOME=$HOME/.perlfox_home
+
 # Kill the container on CTRL+C
 trap cleanup INT
 
@@ -47,7 +47,7 @@ docker run -d -p 2022:22 \
         -e "PF_KEY=$PF_KEY" \
         -v "$PF_HOME:/home/perlfox-user" \
         --name perlfox-session \
-    gizmonicus/perlfox:testing | indent
+    gizmonicus/perlfox:latest | indent
 
 # Wait for SSH to start accepting connections
 REPEAT='true'
