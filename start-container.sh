@@ -19,6 +19,32 @@ function cleanup() {
 }
 
 # MAIN
+HELPTEXT="Perlfox - A dockerized implementation of Firefox with support for\n\
+the dreaded Java plugin. Usage:\n\
+$(basename $0) [options] document_root\n\
+  -h Display this message.\n\
+  -d A space separated list of DNS servers to use (default is 8.8.8.8 and 8.8.4.4)\n\
+  -s List of search domains to use in /etc/resolv.conf (default is null)"
+
+DNS_SERVERS="8.8.8.8 8.8.4.4"
+SEARCH_DOMAINS=""
+
+while getopts d:h OPTION
+do
+    case $OPTION in
+    d)
+        DNS_SERVERS=$OPTARG
+        ;;
+    s)
+        SEARCH_DOMAINS=$OPTARG
+        ;;
+    h)
+      echo -e $HELPTEXT
+      exit 0
+      ;;
+    esac
+done
+
 SSH_KEY=$(mktemp ~/.ssh/perlfox_XXXXXX)
 PF_HOME=$HOME/.perlfox_home
 
@@ -45,6 +71,8 @@ docker run -d -p 2022:22 \
         -e "MY_GID=$MY_GID" \
         -e "MY_UID=$UID" \
         -e "PF_KEY=$PF_KEY" \
+        -e "DNS_SERVERS=$DNS_SERVERS" \
+        -e "SEARCH_DOMAINS=$SEARCH_DOMAINS" \
         -v "$PF_HOME:/home/perlfox-user" \
         --name perlfox-session \
     gizmonicus/perlfox:latest | indent
