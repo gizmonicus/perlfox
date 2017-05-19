@@ -19,27 +19,38 @@ function cleanup() {
 }
 
 # MAIN
-HELPTEXT="Perlfox - A dockerized implementation of Firefox with support for\n\
-the dreaded Java plugin. Usage:\n\
-$(basename $0) [options] document_root\n\
-  -h Display this message.\n\
-  -d A space separated list of DNS servers to use (default is 8.8.8.8 and 8.8.4.4)\n\
-  -s List of search domains to use in /etc/resolv.conf (default is null)"
+read -d '' -r HELPTEXT <<EOF
+Perlfox - A dockerized implementation of Firefox with support for the dreaded Java plugin.
+Usage: $(basename $0) [options] document_root
+  -h Display this message.
+  -p Use this port for binding sshd to the host network stack (default 2022)
+  -c Command to run when starting the container (default is firefox)
+  -d A space separated list of DNS servers to use (default is 8.8.8.8 and 8.8.4.4)
+  -s List of search domains to use in /etc/resolv.conf (default is null)
+EOF
 
 DNS_SERVERS="8.8.8.8 8.8.4.4"
 SEARCH_DOMAINS=""
+SSH_COMMAND="/usr/bin/firefox"
+SSHD_PORT=2022
 
-while getopts d:s:h OPTION
+while getopts d:s:p:h OPTION
 do
     case $OPTION in
+    c)
+        SSH_COMMAND=$OPTARG
+        ;;
     d)
         DNS_SERVERS=$OPTARG
         ;;
     s)
         SEARCH_DOMAINS=$OPTARG
         ;;
+    p)
+        SSHD_PORT=$OPTARG
+        ;;
     h)
-      echo -e $HELPTEXT
+      echo "$HELPTEXT"
       exit 0
       ;;
     esac
@@ -79,7 +90,7 @@ fi
 echo ">> Pulling docker container"
 docker pull gizmonicus/perlfox:latest | indent
 echo ">> Running docker container"
-docker run -d -p 2022:22 \
+docker run -d -p $SSHD_PORT:22 \
         -e "MY_GID=$MY_GID" \
         -e "MY_UID=$UID" \
         -e "PF_KEY=$PF_KEY" \
@@ -96,7 +107,7 @@ COUNT='0'
 LIMIT='10'
 while "$REPEAT"; do
     # Disable host checking to prevent key mismatch. Don't save the host in known hosts file.
-    ssh -X -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p 2022 -i $SSH_KEY perlfox-user@localhost 2>/dev/null && REPEAT='false'
+    ssh -X -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p $SSHD_PORT -i $SSH_KEY perlfox-user@localhost "$SSH_COMMAND" 2>/dev/null && REPEAT='false'
 
     # Try for $LIMIT seconds
     COUNT=$[COUNT + 1]
