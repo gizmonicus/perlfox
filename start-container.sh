@@ -35,9 +35,6 @@ do
     d)
         DNS_SERVERS=$OPTARG
         ;;
-    s)
-        SEARCH_DOMAINS=$OPTARG
-        ;;
     h)
       echo -e $HELPTEXT
       exit 0
