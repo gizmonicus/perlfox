@@ -29,11 +29,14 @@ $(basename $0) [options] document_root\n\
 DNS_SERVERS="8.8.8.8 8.8.4.4"
 SEARCH_DOMAINS=""
 
-while getopts d:h OPTION
+while getopts d:s:h OPTION
 do
     case $OPTION in
     d)
         DNS_SERVERS=$OPTARG
+        ;;
+    s)
+        SEARCH_DOMAINS=$OPTARG
         ;;
     h)
       echo -e $HELPTEXT
@@ -60,12 +63,17 @@ PF_KEY="$(cat ${SSH_KEY}.pub)"
 # In order for home directory integration to work, we need the UID/GID to match
 MY_GID=$(grep ":${UID}:[0-9]*:" /etc/passwd | awk -F: '{print $4}')
 
-# Set DNS options
+# Set DNS servers
 for SERVER in $DNS_SERVERS; do
     DNS_OPTS="$DNS_OPTS --dns=$SERVER"
 done
 
-echo $DNS_OPTS
+# Set DNS search domains
+if [ -n "$SEARCH_DOMAINS" ]; then
+    for DOMAIN in $SEARCH_DOMAINS; do
+        DNS_OPTS="$DNS_OPTS --dns-search=$DOMAIN"
+    done
+fi
 
 # Run docker container
 echo ">> Pulling docker container"
