@@ -63,6 +63,13 @@ PF_KEY="$(cat ${SSH_KEY}.pub)"
 # In order for home directory integration to work, we need the UID/GID to match
 MY_GID=$(grep ":${UID}:[0-9]*:" /etc/passwd | awk -F: '{print $4}')
 
+# Set DNS options
+for SERVER in $DNS_SERVERS; do
+    DNS_OPTS="$DNS_OPTS --dns=$SERVER"
+done
+
+echo $DNS_OPTS
+
 # Run docker container
 echo ">> Pulling docker container"
 docker pull gizmonicus/perlfox:latest | indent
@@ -75,6 +82,7 @@ docker run -d -p 2022:22 \
         -e "SEARCH_DOMAINS=$SEARCH_DOMAINS" \
         -v "$PF_HOME:/home/perlfox-user" \
         --name perlfox-session \
+        $DNS_OPTS \
     gizmonicus/perlfox:latest | indent
 
 # Wait for SSH to start accepting connections
