@@ -34,7 +34,7 @@ SEARCH_DOMAINS=""
 SSH_COMMAND="/usr/bin/firefox"
 SSHD_PORT=2022
 
-while getopts d:s:p:h OPTION
+while getopts c:d:s:p:h OPTION
 do
     case $OPTION in
     c)
