@@ -13,7 +13,7 @@ useradd -u $MY_UID -g $MY_GID -d $PF_HOME perlfox-user
 # Setup perlfox-user keys
 mkdir -p /home/perlfox-user/.ssh
 echo $PF_KEY > $PF_HOME/.ssh/authorized_keys
-chmod 700 $PF_HOME/.ssh && chmod 400 $PF_HOME/.ssh/authorized_keys
+chmod 700 $PF_HOME/.ssh && chmod 400 $PF_HOME/.ssh/authorized_keys && chmod 700 $PF_HOME
 chown -R perlfox-user:perlfox-user $PF_HOME/.ssh
 
 # Configure .bashrc, if one doesn't exist
