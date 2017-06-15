@@ -14,7 +14,7 @@ function cleanup() {
     echo -n ">> Killing docker container: "
     docker kill perlfox-session
     echo -n ">> Removing docker container: "
-    docker rm perlfox-session
+    docker rm -v perlfox-session
     exit
 }
 
