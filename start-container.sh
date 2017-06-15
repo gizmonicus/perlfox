@@ -29,6 +29,7 @@ Usage: $(basename $0) [options] document_root
   -s List of search domains to use in /etc/resolv.conf (default is null). You must configure -d to use this option. Multiple domains must be quoted: "test.com sub.test.com"
 EOF
 
+GIT_BRANCH=$(git branch | sed -n -e 's/^\* \(.*\)/\1/p')
 CONFIGURE_DNS=false
 DNS_SERVERS=""
 SEARCH_DOMAINS=""
@@ -60,6 +61,13 @@ done
 
 SSH_KEY=$(mktemp ~/.ssh/perlfox_XXXXXX)
 PF_HOME=$HOME/.perlfox_home
+
+# determine tag name for docker image based on git branch
+if [ -z "$GIT_BRANCH" ] || [ "$GIT_BRANCH" == "master" ]; then
+    TAG_NAME='latest'
+else
+    TAG_NAME=$GIT_BRANCH
+fi
 
 # Kill the container on CTRL+C
 trap cleanup INT
@@ -112,7 +120,7 @@ docker run -d -p $SSHD_PORT:22 \
         -v "$PF_HOME:/home/perlfox-user" \
         $DNS_OPTS \
         --name perlfox-session \
-    gizmonicus/perlfox:dns | indent
+    gizmonicus/perlfox:$TAG_NAME | indent
 
 # Wait for SSH to start accepting connections
 REPEAT='true'
