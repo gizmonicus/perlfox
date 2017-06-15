@@ -25,11 +25,12 @@ Usage: $(basename $0) [options] document_root
   -h Display this message.
   -p Use this port for binding sshd to the host network stack (default 2022)
   -c Command to run when starting the container (default is firefox)
-  -d A space separated list of DNS servers to use (default is 8.8.8.8 and 8.8.4.4)
-  -s List of search domains to use in /etc/resolv.conf (default is null)
+  -d A space separated list of DNS servers to use (default is to mount /etc/resolv.conf). Multiple DNS servers must be quoted: "1.1.1.1 2.2.2.2".
+  -s List of search domains to use in /etc/resolv.conf (default is null). You must configure -d to use this option. Multiple domains must be quoted: "test.com sub.test.com"
 EOF
 
-DNS_SERVERS="8.8.8.8 8.8.4.4"
+CONFIGURE_DNS=false
+DNS_SERVERS=""
 SEARCH_DOMAINS=""
 SSH_COMMAND="/usr/bin/firefox"
 SSHD_PORT=2022
@@ -42,6 +43,7 @@ do
         ;;
     d)
         DNS_SERVERS=$OPTARG
+        CONFIGURE_DNS=true
         ;;
     s)
         SEARCH_DOMAINS=$OPTARG
@@ -75,15 +77,28 @@ PF_KEY="$(cat ${SSH_KEY}.pub)"
 MY_GID=$(grep ":${UID}:[0-9]*:" /etc/passwd | awk -F: '{print $4}')
 
 # Set DNS servers
-for SERVER in $DNS_SERVERS; do
-    DNS_OPTS="$DNS_OPTS --dns=$SERVER"
-done
+echo ">> Setting DNS options"
+if $CONFIGURE_DNS; then
+    if [ -n "$DNS_SERVERS" ]; then
+        echo "Using DNS servers: $DNS_SERVERS" | indent
+        for SERVER in $DNS_SERVERS; do
+            DNS_OPTS="$DNS_OPTS --dns=$SERVER"
+        done
+    else
+        echo "Using DNS servers: 8.8.8.8 8.8.4.4" | indent
+        DNS_OPTS="$DNS_OPTS --dns=8.8.8.8 --dns=8.8.4.4"
+    fi
 
 # Set DNS search domains
-if [ -n "$SEARCH_DOMAINS" ]; then
-    for DOMAIN in $SEARCH_DOMAINS; do
-        DNS_OPTS="$DNS_OPTS --dns-search=$DOMAIN"
-    done
+    if [ -n "$SEARCH_DOMAINS" ]; then
+        echo "Search domain overriden: $SEARCH_DOMAINS" | indent
+        for DOMAIN in $SEARCH_DOMAINS; do
+            DNS_OPTS="$DNS_OPTS --dns-search=$DOMAIN"
+        done
+    fi
+else
+    echo "Using host's /etc/resolv.conf" | indent
+    DNS_OPTS="-v /etc/resolv.conf:/etc/resolv.conf"
 fi
 
 # Run docker container
@@ -94,12 +109,10 @@ docker run -d -p $SSHD_PORT:22 \
         -e "MY_GID=$MY_GID" \
         -e "MY_UID=$UID" \
         -e "PF_KEY=$PF_KEY" \
-        -e "DNS_SERVERS=$DNS_SERVERS" \
-        -e "SEARCH_DOMAINS=$SEARCH_DOMAINS" \
         -v "$PF_HOME:/home/perlfox-user" \
-        --name perlfox-session \
         $DNS_OPTS \
-    gizmonicus/perlfox:latest | indent
+        --name perlfox-session \
+    gizmonicus/perlfox:dns | indent
 
 # Wait for SSH to start accepting connections
 REPEAT='true'
