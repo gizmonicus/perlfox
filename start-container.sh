@@ -128,7 +128,7 @@ COUNT='0'
 LIMIT='10'
 while "$REPEAT"; do
     # Disable host checking to prevent key mismatch. Don't save the host in known hosts file.
-    ssh -X -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p $SSHD_PORT -i $SSH_KEY perlfox-user@localhost "$SSH_COMMAND" 2>/dev/null && REPEAT='false'
+    ssh -t -X -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p $SSHD_PORT -i $SSH_KEY perlfox-user@localhost "$SSH_COMMAND" 2>/dev/null && REPEAT='false'
 
     # Try for $LIMIT seconds
     COUNT=$[COUNT + 1]
