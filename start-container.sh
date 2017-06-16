@@ -112,7 +112,7 @@ fi
 # Run docker container
 echo ">> Pulling docker container"
 docker pull gizmonicus/perlfox:latest | indent
-echo ">> Running docker container"
+echo ">> Running docker container with tag: $TAG_NAME"
 docker run -d -p $SSHD_PORT:22 \
         -e "MY_GID=$MY_GID" \
         -e "MY_UID=$UID" \
