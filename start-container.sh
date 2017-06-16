@@ -74,7 +74,11 @@ trap cleanup INT
 
 # Create a homedir for perlfox
 echo -n ">> Creating homedirectory: $PF_HOME"
-mkdir -p $PF_HOME && success
+mkdir -p $PF_HOME && success || exit 1
+if [ "$(cat /selinux/enforce 2>/dev/null)" == 1 ]; then
+    echo -n ">> SELinux detected, setting context."
+    chcon -R -t svirt_sandbox_file_t $PF_HOME && success || exit 1
+fi
 
 # Create the SSH key for automatic login
 echo ">> Creating temporary keypair: $SSH_KEY"
